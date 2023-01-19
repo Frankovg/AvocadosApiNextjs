@@ -1,24 +1,39 @@
-import React, { useState, useEffect } from 'react'
-import { useRouter } from 'next/router'
-
+import React from 'react'
 import Layout from '@components/Layout/Layout'
 import ProductSummary from '@components/ProductSummary/ProductSummary'
+import { GetStaticProps } from 'next'
 
-const ProductPage = () => {
-  const { query } = useRouter()
-  const [product, setProduct] = useState<TProduct | null>(null)
+export const getStaticPaths = async () => {
+  const response = await fetch('https://platzi-avo.vercel.app/api/avo') //obtengo info
+  const { data }: TAPIAvoResponse = await response.json() //la transformo en json y hago destructuring de data
 
-  useEffect(() => {
-    if (query.id) {
-      window
-        .fetch(`/api/avo/${query.id}`)
-        .then((response) => response.json())
-        .then((data: TProduct) => {
-          setProduct(data)
-        })
-    }
-  }, [query.id])
+  const paths = data.map((avo) => ({
+    params: {
+      id: avo.id,
+    },
+  }))
 
+  return {
+    paths,
+    //incremental static generation
+    // da un 404 por cada path que no corresponda a los paths
+    fallback: false,
+  }
+}
+
+export const getStaticProps: GetStaticProps = async ({ params }) => {
+  const id = params?.id as string
+  const response = await fetch(`https://platzi-avo.vercel.app/api/avo/${id}`)
+  const product: TProduct = await response.json() //la transformo en json y hago destructuring de data
+
+  return {
+    props: {
+      product,
+    },
+  }
+}
+
+const ProductPage = ({ product }: { product: TProduct }) => {
   return (
     <Layout>
       {product == null ? null : <ProductSummary product={product} />}
